@@ -1,9 +1,14 @@
 
 
+
+
+
+
+
+// server.js
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
-const telegram = require('./telegram'); // Импортируем модуль Telegram
 require('dotenv').config();
 
 const app = express();
@@ -11,27 +16,18 @@ const PORT = process.env.PORT || 10000;
 
 // Настройка CORS
 app.use(cors({
-  origin: 'https://skysea116.github.io', // Ваш URL GitHub Pages
-  methods: ['GET', 'POST']
+  origin: 'https://skysea116.github.io',
+  methods: ['POST', 'GET']
 }));
 
-// Middleware
 app.use(express.json());
 
 // Проверка работы сервера
 app.get('/', (req, res) => {
-  res.json({ 
-    status: 'active',
-    message: 'Сервер работает. Используйте POST /order для заказов'
-  });
+  res.json({ status: 'active', message: 'Сервер работает!' });
 });
 
-// Эндпоинт для пинга (чтобы сервер не "засыпал")
-app.get('/ping', (req, res) => {
-  res.send('pong');
-});
-
-// Обработка заказов кофе
+// Обработка заказов
 app.post('/order', async (req, res) => {
   try {
     const { name, coffee, address, message } = req.body;
@@ -41,140 +37,67 @@ app.post('/order', async (req, res) => {
       return res.status(400).json({ error: 'Не заполнены обязательные поля' });
     }
 
-    // Отправка заказа в Telegram
-    await telegram.sendOrderNotification(name, coffee, address, message);
+    // Проверка переменных окружения
+    if (!process.env.TELEGRAM_TOKEN || !process.env.TELEGRAM_CHAT_ID) {
+      console.error('Ошибка: Не настроены переменные окружения Telegram');
+      return res.status(500).json({ error: 'Ошибка конфигурации сервера' });
+    }
+
+      // Отправка сообщения через бота
+    await axios.post(
+      `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`,
+      {
+        chat_id: Number(process.env.TELEGRAM_CHAT_ID),
+        text: `☕ *Новый заказ от Кристины!*\n\n` +
+              `*Кофе:* ${coffee}\n` +
+              `*Адрес:* ${address}\n` +
+              `*Пожелания:* ${message || 'Нет'}`,
+        parse_mode: 'Markdown',
+        reply_markup: JSON.stringify({
+          inline_keyboard: [
+            [{ text: "✅ Принять заказ", callback_data: "accept" }],
+            [{ text: "❌ Отклонить", callback_data: "reject" }]
+          ]
+        })
+      }
+    );
+
+    // Отправка в Telegram
+    const telegramResponse = await axios.post(
+      `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`,
+      {
+        chat_id: process.env.TELEGRAM_CHAT_ID,
+        text: text,
+        parse_mode: 'Markdown'
+      },
+      {
+        timeout: 10000 // Таймаут 10 секунд
+      }
+    );
+
+    console.log('Сообщение отправлено в Telegram:', telegramResponse.data);
     
     res.json({ success: true });
   } catch (error) {
     console.error('Ошибка при обработке заказа:', error);
-    res.status(500).json({ 
-      error: 'Server error',
-      details: error.message 
-    });
-  }
-});
+    
+    let errorMessage = 'Server error';
+    if (error.response) {
+      // Ошибка от Telegram API
+      errorMessage = `Telegram API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`;
+    } else if (error.request) {
+      // Запрос был отправлен, но ответ не получен
+      errorMessage = 'No response from Telegram API';
+    } else {
+      // Ошибка при настройке запроса
+      errorMessage = error.message;
+    }
 
-// Эндпоинт для вебхука Telegram (обработка нажатий кнопок)
-app.post('/telegram-webhook', express.json(), async (req, res) => {
-  try {
-    await telegram.handleWebhook(req.body);
-    res.status(200).end();
-  } catch (error) {
-    console.error('Ошибка в вебхуке:', error);
-    res.status(500).end();
+    res.status(500).json({ error: errorMessage });
   }
 });
 
 // Запуск сервера
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
   console.log(`Сервер запущен на порту ${PORT}`);
-  
-  // Настройка вебхука при запуске сервера
-  try {
-    const webhookUrl = `https://${process.env.RENDER_SERVICE_URL}/telegram-webhook`;
-    await telegram.setupWebhook(webhookUrl);
-    console.log('Вебхук успешно настроен');
-  } catch (error) {
-    console.error('Ошибка настройки вебхука:', error.message);
-  }
 });
-
-
-
-
-// // server.js
-// const express = require('express');
-// const axios = require('axios');
-// const cors = require('cors');
-// require('dotenv').config();
-
-// const app = express();
-// const PORT = process.env.PORT || 10000;
-
-// // Настройка CORS
-// app.use(cors({
-//   origin: 'https://skysea116.github.io',
-//   methods: ['POST', 'GET']
-// }));
-
-// app.use(express.json());
-
-// // Проверка работы сервера
-// app.get('/', (req, res) => {
-//   res.json({ status: 'active', message: 'Сервер работает!' });
-// });
-
-// // Обработка заказов
-// app.post('/order', async (req, res) => {
-//   try {
-//     const { name, coffee, address, message } = req.body;
-    
-//     // Проверка обязательных полей
-//     if (!name || !coffee || !address) {
-//       return res.status(400).json({ error: 'Не заполнены обязательные поля' });
-//     }
-
-//     // Проверка переменных окружения
-//     if (!process.env.TELEGRAM_TOKEN || !process.env.TELEGRAM_CHAT_ID) {
-//       console.error('Ошибка: Не настроены переменные окружения Telegram');
-//       return res.status(500).json({ error: 'Ошибка конфигурации сервера' });
-//     }
-
-//       // Отправка сообщения через бота
-//     await axios.post(
-//       `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`,
-//       {
-//         chat_id: Number(process.env.TELEGRAM_CHAT_ID),
-//         text: `☕ *Новый заказ от Кристины!*\n\n` +
-//               `*Кофе:* ${coffee}\n` +
-//               `*Адрес:* ${address}\n` +
-//               `*Пожелания:* ${message || 'Нет'}`,
-//         parse_mode: 'Markdown',
-//         reply_markup: JSON.stringify({
-//           inline_keyboard: [
-//             [{ text: "✅ Принять заказ", callback_data: "accept" }],
-//             [{ text: "❌ Отклонить", callback_data: "reject" }]
-//           ]
-//         })
-//       }
-//     );
-
-//     // Отправка в Telegram
-//     const telegramResponse = await axios.post(
-//       `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`,
-//       {
-//         chat_id: process.env.TELEGRAM_CHAT_ID,
-//         text: text,
-//         parse_mode: 'Markdown'
-//       },
-//       {
-//         timeout: 10000 // Таймаут 10 секунд
-//       }
-//     );
-
-//     console.log('Сообщение отправлено в Telegram:', telegramResponse.data);
-    
-//     res.json({ success: true });
-//   } catch (error) {
-//     console.error('Ошибка при обработке заказа:', error);
-    
-//     let errorMessage = 'Server error';
-//     if (error.response) {
-//       // Ошибка от Telegram API
-//       errorMessage = `Telegram API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`;
-//     } else if (error.request) {
-//       // Запрос был отправлен, но ответ не получен
-//       errorMessage = 'No response from Telegram API';
-//     } else {
-//       // Ошибка при настройке запроса
-//       errorMessage = error.message;
-//     }
-
-//     res.status(500).json({ error: errorMessage });
-//   }
-// });
-
-// // Запуск сервера
-// app.listen(PORT, () => {
-//   console.log(`Сервер запущен на порту ${PORT}`);
-// });
