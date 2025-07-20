@@ -501,10 +501,7 @@
     
     // Остальной код обработки успеха...
     
-  } catch (error) {
-    console.error('Ошибка запроса:', error);
-    alert(`Ошибка отправки: ${error.message}`);
-  } finally {
+  }  finally {
     loader.style.display = 'none';
     button.style.display = 'block';
   }
