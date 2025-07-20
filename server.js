@@ -1,8 +1,4 @@
-// В server.js добавьте явное разрешение для GitHub Pages:
-app.use(cors({
-  origin: ['https://skysea116.github.io/coffeee/', 'http://localhost:3000'],
-  methods: ['GET', 'POST']
-}));
+
 
 const express = require('express');
 const axios = require('axios');
@@ -11,6 +7,12 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// В server.js добавьте явное разрешение для GitHub Pages:
+app.use(cors({
+  origin: ['https://skysea116.github.io/coffeee/', 'http://localhost:3000'],
+  methods: ['GET', 'POST']
+}));
 
 // Настройки CORS
 app.use(cors());
