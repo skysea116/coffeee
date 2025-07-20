@@ -498,7 +498,7 @@
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(`Server error: ${errorData.error || response.status}`);
-      document.querySelector('#secret').style.cssText="display: block";
+     
     }
 
     const result = await response.json();
@@ -509,6 +509,7 @@
   }  finally {
     loader.style.display = 'none';
     button.style.display = 'block';
+     document.querySelector('#secret').style.cssText="display: block";
   }
 }
         
