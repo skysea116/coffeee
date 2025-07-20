@@ -476,18 +476,18 @@
             
             try {
                 // Отправляем данные на сервер
-                const response = await fetch('https://coffee-for-kristina.onrender.com', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        name,
-                        coffee,
-                        address,
-                        message
-                    })
-                });
+                const response = await fetch('https://coffee-for-kristina.onrender.com/order', {
+                      method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    name: document.getElementById('name').value,
+    coffee: document.getElementById('coffee').value,
+    address: document.getElementById('address').value,
+    message: document.getElementById('message').value || "Без пожеланий"
+  })
+});
                 
                 const result = await response.json();
                 

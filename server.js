@@ -1,7 +1,7 @@
 // В server.js добавьте явное разрешение для GitHub Pages:
-const cors = require('cors');
 app.use(cors({
-  origin: 'https://github.com/skysea116/coffeee' // Замените на ваш реальный URL
+  origin: ['https://skysea116.github.io/coffeee/', 'http://localhost:3000'],
+  methods: ['GET', 'POST']
 }));
 
 const express = require('express');
