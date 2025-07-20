@@ -1,6 +1,11 @@
 
 
 
+
+
+
+
+// server.js
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
@@ -17,34 +22,71 @@ app.use(cors({
 
 app.use(express.json());
 
-// Тестовый роут
+// Проверка работы сервера
 app.get('/', (req, res) => {
   res.json({ status: 'active', message: 'Сервер работает!' });
 });
 
-// Обработчик заказов
+// Обработка заказов
 app.post('/order', async (req, res) => {
-  console.log('Получен заказ:', req.body);
-  
   try {
     const { name, coffee, address, message } = req.body;
     
+    // Проверка обязательных полей
+    if (!name || !coffee || !address) {
+      return res.status(400).json({ error: 'Не заполнены обязательные поля' });
+    }
+
+    // Проверка переменных окружения
+    if (!process.env.TELEGRAM_TOKEN || !process.env.TELEGRAM_CHAT_ID) {
+      console.error('Ошибка: Не настроены переменные окружения Telegram');
+      return res.status(500).json({ error: 'Ошибка конфигурации сервера' });
+    }
+
+    // Формирование сообщения
+    const text = `☕ *Новый заказ кофе для Кристины!*\n\n` +
+                 `*Имя:* ${name}\n` +
+                 `*Кофе:* ${coffee}\n` +
+                 `*Адрес:* ${address}\n` +
+                 `*Пожелания:* ${message || 'Нет'}\n\n` +
+                 `_Промокод: КРИСТИНА_`;
+
     // Отправка в Telegram
     const telegramResponse = await axios.post(
       `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`,
       {
         chat_id: process.env.TELEGRAM_CHAT_ID,
-        text: `☕ Новый заказ!\nИмя: ${name}\nКофе: ${coffee}\nАдрес: ${address}\nПожелания: ${message || 'Нет'}`
+        text: text,
+        parse_mode: 'Markdown'
+      },
+      {
+        timeout: 10000 // Таймаут 10 секунд
       }
     );
+
+    console.log('Сообщение отправлено в Telegram:', telegramResponse.data);
     
-    res.json({ success: true, telegramStatus: telegramResponse.status });
+    res.json({ success: true });
   } catch (error) {
-    console.error('Ошибка:', error.message);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Ошибка при обработке заказа:', error);
+    
+    let errorMessage = 'Server error';
+    if (error.response) {
+      // Ошибка от Telegram API
+      errorMessage = `Telegram API error: ${error.response.status} - ${JSON.stringify(error.response.data)}`;
+    } else if (error.request) {
+      // Запрос был отправлен, но ответ не получен
+      errorMessage = 'No response from Telegram API';
+    } else {
+      // Ошибка при настройке запроса
+      errorMessage = error.message;
+    }
+
+    res.status(500).json({ error: errorMessage });
   }
 });
 
+// Запуск сервера
 app.listen(PORT, () => {
   console.log(`Сервер запущен на порту ${PORT}`);
 });
