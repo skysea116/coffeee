@@ -42,7 +42,10 @@ app.post('/order', async (req, res) => {
       console.error('Ошибка: Не настроены переменные окружения Telegram');
       return res.status(500).json({ error: 'Ошибка конфигурации сервера' });
     }
-
+ const text = `☕ *Новый заказ от ${name}!*\n\n` +
+               `*Кофе:* ${coffee}\n` +
+               `*Адрес:* ${address}\n` +
+               `*Пожелания:* ${message || 'Нет'}`;
       // Отправка сообщения через бота
     await axios.post(
       `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`,
