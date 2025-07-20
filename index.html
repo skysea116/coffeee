@@ -378,7 +378,7 @@
                 <p>Бесплатный кофе с бесплатной доставкой!</p>
             </div>
 
-            <div class="secret-blck" id="secret" style="border-radius: 15px; background-color: #35ca49; color: white; padding: 15px; font-size: 19px; text-align: center; font-weight: bold; display: none;">
+            <div class="secret-blck" id="secret" style=" display: none;">
                 <p>Спасибо за заказ! Наш специальный человек скоро доставит кофеёчек, мяу :)</p>
             </div>
             
@@ -509,7 +509,7 @@
   }  finally {
     loader.style.display = 'none';
     button.style.display = 'block';
-     document.querySelector('#secret').style.cssText="display: block";
+     document.querySelector('#secret').style.cssText="display: block; border-radius: 15px; background-color: #35ca49; color: white; padding: 15px; font-size: 19px; text-align: center; font-weight: bold;";
   }
 }
         
